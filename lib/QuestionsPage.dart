@@ -18,6 +18,8 @@ class _QuestionsPageState extends State<QuestionsPage> {
   List<List<String>> allAnswers =[];
   List<String> selectedAnswers =[];
   var freeTxtController=TextEditingController();
+
+  final _questionsPageController=PageController();
   @override
   void initState() {
     for (var question in database.allQuestions) {
@@ -40,87 +42,99 @@ class _QuestionsPageState extends State<QuestionsPage> {
         title: Text(currentQuestion.type!.toUpperCase()),
         titleTextStyle: TextStyle(color: database.titleColor, fontWeight: FontWeight.w500,fontSize: 17),
       ),
-      body: SafeArea(
-        minimum: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
+      bottomSheet: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          ElevatedButton(
+              onPressed: _savePressed,
+              style: ButtonStyle(
+                  surfaceTintColor: const MaterialStatePropertyAll(Colors.white),
+                  backgroundColor: !isLast?MaterialStatePropertyAll(database.titleColor):null,
+                  shape: MaterialStatePropertyAll(isLast?RoundedRectangleBorder(side: const BorderSide(color: Colors.grey),borderRadius: BorderRadius.circular(3)):RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(isLast?"Save & Finish":"Save & Next",style: TextStyle(color: isLast?database.titleColor:Colors.white),),
+                ],
+              )),
+          const SizedBox(height: 10,),
+          ElevatedButton(
+              onPressed: (){},
+              style: ButtonStyle(
+                  surfaceTintColor: const MaterialStatePropertyAll(Colors.white),
+                  backgroundColor: const MaterialStatePropertyAll(Color(0xffDC0032)),
+                  shape: MaterialStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Quit Assignment",style: TextStyle(color:Colors.white),),
+                ],
+              )),
+          const SizedBox(height: 20,)
+        ],
+
+      ),
+      body: PageView(
+        onPageChanged: (index){
+          currentIndex=index;
+          setState(() {
+
+          });
+        },
+        controller: _questionsPageController,
+        children: allQuestions.map((e) => question(e)).toList(),
+      ),
+    );
+  }
+  Widget question(currentQuestion){
+    return SafeArea(
+      minimum: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
                 border: Border.all(color:database.titleColor),
                 borderRadius: BorderRadius.circular(3)
-              ),
-              child: Text(
-                currentQuestion.question!,
-                textAlign: TextAlign.center,
-                style:  TextStyle(color: database.titleColor,),
-              ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('${currentIndex+1} of ${allQuestions.length}',style: const TextStyle(color: Color(0xffDC0032),fontWeight: FontWeight.w700),),
-                if(!singleSelect)  Text('*one or more correct answers',style: TextStyle(color: database.titleColor),)
-              ],
+            child: Text(
+              currentQuestion.question!,
+              textAlign: TextAlign.center,
+              style:  TextStyle(color: database.titleColor,),
             ),
-            const SizedBox(height: 20,),
-            if(currentQuestion.type=='free-text') TextField(
-              controller: freeTxtController,
-              style: TextStyle(color: database.titleColor),
-              decoration: InputDecoration(
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('${currentIndex+1} of ${allQuestions.length}',style: const TextStyle(color: Color(0xffDC0032),fontWeight: FontWeight.w700),),
+              if(!singleSelect)  Text('*one or more correct answers',style: TextStyle(color: database.titleColor),)
+            ],
+          ),
+          const SizedBox(height: 20,),
+          if(currentQuestion.type=='free-text') TextField(
+            controller: freeTxtController,
+            style: TextStyle(color: database.titleColor),
+            decoration: InputDecoration(
                 labelText: "Write you answer here..",
                 labelStyle: const TextStyle(color: Colors.grey),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10),
                 border: OutlineInputBorder(borderSide: BorderSide(color: database.titleColor))
-              ),
             ),
-            ...currentQuestion.options!.map((e) => Column(
-              children: [
-                optionCard(e.id!,e.text!,selectedAnswers.contains(e.id)),
-                const SizedBox(height: 15,)
-              ],
-            )).toList(),
-            Expanded(child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                    onPressed: _savePressed,
-                    style: ButtonStyle(
-                      surfaceTintColor: const MaterialStatePropertyAll(Colors.white),
-                      backgroundColor: !isLast?MaterialStatePropertyAll(database.titleColor):null,
-                      shape: MaterialStatePropertyAll(isLast?RoundedRectangleBorder(side: const BorderSide(color: Colors.grey),borderRadius: BorderRadius.circular(3)):RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(isLast?"Save & Finish":"Save & Next",style: TextStyle(color: isLast?database.titleColor:Colors.white),),
-                  ],
-                )),
-                const SizedBox(height: 10,),
-                ElevatedButton(
-                    onPressed: (){},
-                    style: ButtonStyle(
-                      surfaceTintColor: const MaterialStatePropertyAll(Colors.white),
-                      backgroundColor: const MaterialStatePropertyAll(Color(0xffDC0032)),
-                      shape: MaterialStatePropertyAll(RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Quit Assignment",style: TextStyle(color:Colors.white),),
-                  ],
-                )),
-                const SizedBox(height: 20,)
-              ],
-
-            ))
-
-          ],
-        ),
-
+          ),
+          ...currentQuestion.options!.map((e) => Column(
+            children: [
+              optionCard(e.id!,e.text!,selectedAnswers.contains(e.id)),
+              const SizedBox(height: 15,)
+            ],
+          )).toList(),
+        ],
       ),
+
     );
   }
   Widget optionCard(String optionId , String option,bool selected) {
@@ -193,10 +207,8 @@ class _QuestionsPageState extends State<QuestionsPage> {
     }
     selectedAnswers=[];
     if(!isLast){
-      currentIndex++;
-      setState(() {
-
-      });
+      _questionsPageController.jumpToPage(++currentIndex);
+      setState(() {});
     }
   }
 }
