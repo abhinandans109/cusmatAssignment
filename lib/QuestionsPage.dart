@@ -18,6 +18,8 @@ class _QuestionsPageState extends State<QuestionsPage> {
   List<List<String>> allAnswers =[];
   List<String> selectedAnswers =[];
   var freeTxtController=TextEditingController();
+
+  bool nextDisabled=true;
   @override
   void initState() {
     for (var question in database.allQuestions) {
@@ -33,6 +35,7 @@ class _QuestionsPageState extends State<QuestionsPage> {
       appBar: AppBar(
         leading: InkWell(onTap:(){
           selectedAnswers=[];
+          freeTxtController=TextEditingController();
           if(currentIndex>0)currentIndex--;
           setState(() {});
         },child: Icon(Icons.arrow_back_rounded,color: database.titleColor,)),
@@ -68,6 +71,13 @@ class _QuestionsPageState extends State<QuestionsPage> {
             const SizedBox(height: 20,),
             if(currentQuestion.type=='free-text') TextField(
               controller: freeTxtController,
+              onChanged: (s){
+                selectedAnswers=[];
+                selectedAnswers.add(s);
+                setState(() {
+
+                });
+              },
               style: TextStyle(color: database.titleColor),
               decoration: InputDecoration(
                 labelText: "Write you answer here..",
@@ -89,13 +99,13 @@ class _QuestionsPageState extends State<QuestionsPage> {
                     onPressed: _savePressed,
                     style: ButtonStyle(
                       surfaceTintColor: const MaterialStatePropertyAll(Colors.white),
-                      backgroundColor: !isLast?MaterialStatePropertyAll(database.titleColor):null,
-                      shape: MaterialStatePropertyAll(isLast?RoundedRectangleBorder(side: const BorderSide(color: Colors.grey),borderRadius: BorderRadius.circular(3)):RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
+                      backgroundColor: nextDisabled?null:MaterialStatePropertyAll(database.titleColor),
+                      shape: MaterialStatePropertyAll(nextDisabled?RoundedRectangleBorder(side: const BorderSide(color: Colors.grey),borderRadius: BorderRadius.circular(3)):RoundedRectangleBorder(borderRadius: BorderRadius.circular(3)))
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(isLast?"Save & Finish":"Save & Next",style: TextStyle(color: isLast?database.titleColor:Colors.white),),
+                    Text(isLast?"Save & Finish":"Save & Next",style: TextStyle(color: nextDisabled?database.titleColor:Colors.white),),
                   ],
                 )),
                 const SizedBox(height: 10,),
@@ -126,31 +136,33 @@ class _QuestionsPageState extends State<QuestionsPage> {
   Widget optionCard(String optionId , String option,bool selected) {
     return StatefulBuilder(
         builder: (context, setOptionState) {
-          return InkWell(
-            onTap: (){
-              if(allAnswers.length>=currentIndex+1){
-                allAnswers.removeAt(currentIndex);
-                allAnswers.insert(currentIndex, selectedAnswers);
-              }else {
-                allAnswers.add(selectedAnswers);
-              }
-             if (!selectedAnswers.contains(optionId)){
-                if (singleSelect) {
-                  selectedAnswers.clear();
-                  setState(() {});
+          return Card(
+            elevation: 3,
+            color: selected?const Color(0xff536883):Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(3)
+            ),
+            child: InkWell(
+              onTap: (){
+                if(allAnswers.length>=currentIndex+1){
+                  allAnswers.removeAt(currentIndex);
+                  allAnswers.insert(currentIndex, selectedAnswers);
+                }else {
+                  allAnswers.add(selectedAnswers);
                 }
-                selectedAnswers.add(optionId);
-             }
-              selected=!selected;
-              setOptionState(() {});
-            },
-            child: Card(
-              elevation: 3,
-              color: selected?const Color(0xff536883):Colors.white,
-              surfaceTintColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(3)
-              ),
+               if (!selectedAnswers.contains(optionId)){
+                  if (singleSelect) {
+                    selectedAnswers.clear();
+                  }
+                  selectedAnswers.add(optionId);
+               }else{
+                 selectedAnswers.remove(optionId);
+               }
+                setState(() {});
+                selected=!selected;
+                setOptionState(() {});
+              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 18.0,horizontal: 10),
                 child: Row(
@@ -174,29 +186,55 @@ class _QuestionsPageState extends State<QuestionsPage> {
     }else{
       singleSelect=true;
     }
-    selectedAnswers = allAnswers.elementAtOrNull(currentIndex)??[];
+
     if(currentQuestion.type=='free-text'){
+      if(freeTxtController.text.isEmpty) selectedAnswers = allAnswers.elementAtOrNull(currentIndex)??[];
       freeTxtController.text=selectedAnswers.isNotEmpty?selectedAnswers.first:"";
+    }else{
+      selectedAnswers = allAnswers.elementAtOrNull(currentIndex)??[];
     }
+    nextDisabled = selectedAnswers.isEmpty ||(currentQuestion.type=='free-text' && freeTxtController.text.isEmpty);
   }
 
   void _savePressed(){
-    if(currentQuestion.type=='free-text'){
-      selectedAnswers.add(freeTxtController.text);
-      freeTxtController=TextEditingController();
-    }
-    if(allAnswers.length>=currentIndex+1){
-      allAnswers.removeAt(currentIndex);
-      allAnswers.insert(currentIndex, selectedAnswers);
-    }else {
-      allAnswers.add(selectedAnswers);
-    }
-    selectedAnswers=[];
-    if(!isLast){
-      currentIndex++;
-      setState(() {
+    if(isLast && !nextDisabled){
+      var answers = [['C'],['A','B'],['B'],['B'],['C']];
+      var tempAll = [];
+      for(int i=0;i<allAnswers.length;i++){
+        if(i==2)continue;
+        tempAll.add(allAnswers.elementAt(i));
+      }
+      var correct =0;
+      for(int i=0;i<answers.length;i++){
+        if(answers.elementAt(i).toString()==tempAll.elementAt(i).toString()){
+          correct++;
+        }
+      }
+      var score = (((correct + 1 )/ 6) * 100).round();
+      showDialog(context: context, builder: (builder)=>AlertDialog(
+        title: Text('Score',style: TextStyle(fontSize: 25,color: database.titleColor),),
+        content: Text('Congratulations .. you have scored $score%',style: TextStyle(fontSize: 20,fontWeight: FontWeight.w500,color: database.titleColor),),
+        actions: [TextButton(onPressed: (){Navigator.pop(builder);}, child: Text('Ok'))],
 
-      });
+      ));
+      return;
+    }
+    if(!nextDisabled){
+      if (currentQuestion.type == 'free-text') {
+        selectedAnswers.add(freeTxtController.text);
+        freeTxtController = TextEditingController();
+      }
+      if (allAnswers.length >= currentIndex + 1) {
+        allAnswers.removeAt(currentIndex);
+        allAnswers.insert(currentIndex, selectedAnswers);
+      } else {
+        allAnswers.add(selectedAnswers);
+      }
+      selectedAnswers = [];
+      if (!isLast) {
+        currentIndex++;
+        setState(() {});
+      }
     }
   }
 }
